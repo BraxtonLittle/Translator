@@ -1,0 +1,3 @@
+let myVar;
+myVar = 5+3;
+speak("myVar value: " + myVar);
