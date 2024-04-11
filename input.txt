@@ -1,3 +1,6 @@
 let int myVar;
+const double tempVar = 8;
 myVar = 5+3;
 speak("myVar value: " + myVar);
+fun add(x,y):
+	return x+y;

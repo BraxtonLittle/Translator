@@ -55,16 +55,33 @@ public class Translator {
 		output.add(line);
 	}
 	
+	public static void translateReturnStmt(String line, List<String> output) {
+		// Return statements don't need to be translated
+		output.add(line);
+	}
+	
 	public static void translateFunction(Integer tabCount, Scanner scanner, String line, List<String> output) {
 		// Translate line parameter first and add it to output, then handle
-		// nested function body by calling translate with additional tabCount 
-		translate(tabCount+1, scanner, output);
+		// nested function body by calling translate with additional tabCount
+		System.out.println("------------------");
+		//translate(tabCount+1, scanner, output);
+		System.out.println("------------------");
 	}
 	
 	public static void translateConditionalStmt(Integer tabCount, Scanner scanner, String line, List<String> output) {
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount 
-		translate(tabCount+1, scanner, output);
+		//translate(tabCount+1, scanner, output);
+	}
+	
+	public static int countTabs(String inputLine) {
+		for(int i = 0; i<inputLine.length(); i++) {
+			if(inputLine.charAt(i)!='\t') {
+				return i;
+			}
+		}
+		System.out.println("Error reading tab count");
+		return -1;
 	}
 	
 	/*
@@ -78,6 +95,12 @@ public class Translator {
 	{
 		while(scanner.hasNextLine()) {
 			String inputLine = scanner.nextLine();
+			
+			int readTabCount = countTabs(inputLine);
+			if(tabCount!=readTabCount) {
+				break;
+			}
+			inputLine = inputLine.replaceAll("\t", "");
 			
 			// Function declaration
 			Pattern pattern = Pattern.compile("fun .*(.*):");
@@ -114,8 +137,17 @@ public class Translator {
 					    		translateInitializeStmt(inputLine, output);
 					    	}
 					    	else {
-					    		System.out.println("Unrecognized statement: " + inputLine);
+					    		// Return statement
+						    	pattern = Pattern.compile("return .*;");
+						    	matcher = pattern.matcher(inputLine);
+						    	if(matcher.find()) {
+						    		translateReturnStmt(inputLine, output);
+						    	}
+						    	else {
+						    		System.out.println("Unrecognized statement: " + inputLine);
+						    	}
 					    	}
+					    	
 				    	}
 			    	}
 		    	}
