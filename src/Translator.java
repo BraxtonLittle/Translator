@@ -37,6 +37,8 @@ public class Translator {
 		if(sc!=null) {
 			translate(0, sc, output);
 		}
+		// Once we've read through the entire file, write output
+		writeOutput(output);
 	}
 	
 	public static void translateDeclarationStmt(String line, List<String> output) {
@@ -63,15 +65,15 @@ public class Translator {
 	public static void translateFunction(Integer tabCount, Scanner scanner, String line, List<String> output) {
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
-		System.out.println("------------------");
-		//translate(tabCount+1, scanner, output);
-		System.out.println("------------------");
+		
+		translate(tabCount+1, scanner, output);
+		
 	}
 	
 	public static void translateConditionalStmt(Integer tabCount, Scanner scanner, String line, List<String> output) {
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount 
-		//translate(tabCount+1, scanner, output);
+		// translate(tabCount+1, scanner, output);
 	}
 	
 	public static int countTabs(String inputLine) {
@@ -153,8 +155,6 @@ public class Translator {
 		    	}
 		    }
 		}
-		// Once we've read through the entire file, write output
-		writeOutput(output);
 	}
 	
 	/*
