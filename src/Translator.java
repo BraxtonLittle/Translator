@@ -1,6 +1,8 @@
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,15 +14,15 @@ import java.util.regex.Pattern;
  * types so that when they get passed as parameters in functions we can
  * translate them to Java easily.
  * 
- * We need to figure out how to handle nesting for the bodies of functions
- * and conditional statements. Since our language is indentation-based, I'm
- * thinking our translate function can have a numerical flag indicating
- * the number of tab characters we're on, representing scope in a way. Then
- * when we reach a line that's smaller then our current tab count (i.e we
- * WERE inside of a function so each line started with 1 tab, but now we've
- * broken out of that so each line only starts with 0 tabs) we break out of
- * the while loop. I've added the tabCount param just to have it there but
- * I don't have any logic for it yet.
+ * One of our additional features can check if const variables get re-initialized,
+ * and if a let/var variable is undefined/used outside of its scope. i.e. it gets defined within
+ * a conditional block and is used outside of the block, thus it would be undefined.
+ * 
+ * We might be able to do a type checking system if we're already storing types in a symbol table,
+ * and prohibit duplicate functions with the same name
+ * 
+ * Lastly we can add a feature that explicity shows the parsing process
+ * 
  */
 
 public class Translator {
@@ -32,10 +34,12 @@ public class Translator {
 	 */
 	public static void main(String[] args) {
 		Scanner sc = readFileFromCommandLine(args);
+		Scanner subScanner = readFileFromCommandLine(args);
 		List<String> output = new ArrayList<String>();
-		
 		if(sc!=null) {
-			translate(0, sc, output);
+			Map<String, List> symbolTable = new HashMap<>();
+			translate(0, sc, subScanner, symbolTable, output);
+			sc.close();
 		}
 		// Once we've read through the entire file, write output
 		writeOutput(output);
@@ -60,14 +64,115 @@ public class Translator {
 	public static void translateReturnStmt(String line, List<String> output) {
 		// Return statements don't need to be translated
 		output.add(line);
+		
 	}
 	
-	public static void translateFunction(Integer tabCount, Scanner scanner, String line, List<String> output) {
-		// Translate line parameter first and add it to output, then handle
-		// nested function body by calling translate with additional tabCount
+	/*
+	 * This function uses the return statement to determine a function's
+	 * return type, which will be used when translating the function declaration
+	 * line. This checks for which primitive operators are present in the return
+	 * statement in the necessary order (i.e. putting arithmetic before comparison
+	 * would be wrong because "return (3+4)<9" would be considered arithmetic when
+	 * its actually a comparison statement. If we're not returning a primitive
+	 * or string, we're returning a variable of sorts so use the return type of that
+	 * variable stored in the lookup table.
+	 */
+	public static String getReturnType(Integer tabCount, String inputLine, Map<String, List> symbolTable) {
+		String variableToSearch = inputLine.substring(inputLine.indexOf("return"));
+		variableToSearch = variableToSearch.strip();
 		
-		translate(tabCount+1, scanner, output);
+		// If we're returning a function or variable, we want to lookup only the name in our
+		// symbol table without the parenthesis
+		Pattern pattern = Pattern.compile(".*(.*);");
+	    Matcher matcher = pattern.matcher(variableToSearch);
+	    if(matcher.find()) {
+	    	variableToSearch = variableToSearch.substring(variableToSearch.indexOf("("));
+	    }
+		variableToSearch+=tabCount;
+		System.out.println("Searching for variable: " + variableToSearch);
 		
+		
+		// Not returning a function, check primitive values
+		String[] comparisonOps = {">", "<", ">=", "<=", "=="};
+		String[] arithmeticOps = {"+", "-", "/", "%"};
+		for(String comparisonOp : comparisonOps) {
+			if(inputLine.contains(comparisonOp)) {
+				return "boolean";
+			}
+		}
+		
+		for(String arithmeticOp : arithmeticOps) {
+			if(inputLine.contains(arithmeticOp)) {
+				return "Integer";
+			}
+		}
+		
+		if(inputLine.contains("\"")) {
+			return "String";
+		}
+		
+		// If no return type found, print error and return void
+		System.out.println("ERROR: A return type could not be found for: " + inputLine);
+		return "void";
+	}
+	
+	/*
+	 * This function uses a subScanner to "jump ahead" in the file and determine
+	 * the function's return type first so that it can correctly translate
+	 * the function declaration line before translating the body normally by calling
+	 * the translate() function with an increased tabCount value to indicate scope.
+	 * 
+	 */
+	public static void translateFunction(Integer tabCount, Scanner scanner, Scanner subScanner, Map<String, List> symbolTable, String line, List<String> output) {
+		
+		// Shows an error if a function exists with same name and return type, mostly because
+		// this isn't valid in Java but also because it'll cause a bug in our implementation below
+		String functionName = line.substring(line.indexOf(" "), line.indexOf("("));
+		functionName = functionName.strip();
+		if(symbolTable.containsKey(functionName)) {
+			// Check if return type is the same, same function names are allowed but
+			// their return type has to be different
+			System.out.println("ERROR: Duplicate function name " + functionName + " detected");
+			return;
+		}
+		
+		// Use the subScanner to retrieve the return statement line
+		String foundLine = "";
+    	Matcher matcher;
+		while(subScanner.hasNextLine()) {
+			String inputLine = subScanner.nextLine();
+			int readTabCount = countTabs(inputLine);
+			// If tab counts mismatch, we've broken out of scope without finding
+			// a return statement
+			if(readTabCount!=tabCount) {
+				break;
+			}
+			String regex = "\t".repeat(readTabCount) + "return .*;";
+			Pattern pattern = Pattern.compile(regex);
+			matcher = pattern.matcher(inputLine);
+			if(matcher.find()) {
+				foundLine = inputLine;
+				break;
+			}
+		}
+		// Reset the subScanner for future use in nested bodies
+		subScanner.reset();
+		
+		// Interpret the return type from the return statement line, or void
+		// if no return statement was found in this scope
+		String returnType;
+		if(foundLine.length()>0) {
+			System.out.println("Found line: " + foundLine);
+			returnType = getReturnType(tabCount, foundLine.strip(), symbolTable);
+		}
+		else {
+			// No return line, function type is void
+			returnType = "void";
+		}
+		
+		
+		
+		translate(tabCount+1, scanner, subScanner, symbolTable, output);
 	}
 	
 	public static void translateConditionalStmt(Integer tabCount, Scanner scanner, String line, List<String> output) {
@@ -93,7 +198,7 @@ public class Translator {
 	 * call scanner.nextLine in their own helper methods and return here
 	 * to continue parsing through the rest of the input file afterwards.
 	 */
-	public static void translate(Integer tabCount, Scanner scanner, List<String> output)
+	public static void translate(Integer tabCount, Scanner scanner, Scanner subScanner, Map<String, List> symbolTable, List<String> output)
 	{
 		while(scanner.hasNextLine()) {
 			String inputLine = scanner.nextLine();
@@ -102,13 +207,13 @@ public class Translator {
 			if(tabCount!=readTabCount) {
 				break;
 			}
-			inputLine = inputLine.replaceAll("\t", "");
+			//inputLine = inputLine.replaceAll("\t", "");
 			
 			// Function declaration
 			Pattern pattern = Pattern.compile("fun .*(.*):");
 		    Matcher matcher = pattern.matcher(inputLine);
 		    if(matcher.find()) {
-		    	translateFunction(tabCount, scanner, inputLine, output);
+		    	translateFunction(tabCount, scanner, subScanner, symbolTable, inputLine, output);
 		    }
 		    else {
 		    	// Conditional statement
