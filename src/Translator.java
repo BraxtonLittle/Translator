@@ -45,9 +45,10 @@ public class Translator {
 		writeOutput(output);
 	}
 	
-	public static void translateDeclarationStmt(String line, List<String> output) {
+	public static void translateDeclarationStmt(String line, Integer tabCount, List<String> output) {
 		// Remove scope variable
 		line = line.substring(line.indexOf(" ")+1);
+		line = "\t".repeat(tabCount) + line;
 		output.add(line);
 	}
 	
@@ -131,7 +132,8 @@ public class Translator {
 		functionName = functionName.strip();
 		if(symbolTable.containsKey(functionName)) {
 			// Check if return type is the same, same function names are allowed but
-			// their return type has to be different
+			// their return type has to be different. This has to be done with lineCount
+			// instead of checking the subScanner's line against the main scanner
 			System.out.println("ERROR: Duplicate function name " + functionName + " detected");
 			return;
 		}
@@ -155,6 +157,7 @@ public class Translator {
 				break;
 			}
 		}
+		
 		// Reset the subScanner for future use in nested bodies
 		subScanner.reset();
 		
@@ -170,9 +173,12 @@ public class Translator {
 			returnType = "void";
 		}
 		
-		
+		output.add("public static " + returnType + " " + functionName + "\n{");
 		
 		translate(tabCount+1, scanner, subScanner, symbolTable, output);
+		
+		//Add a closing bracket to signify the end of the function
+		output.add("}");
 	}
 	
 	public static void translateConditionalStmt(Integer tabCount, Scanner scanner, String line, List<String> output) {
@@ -234,7 +240,7 @@ public class Translator {
 				    	pattern = Pattern.compile("(let|const|var) .*;");
 				    	matcher = pattern.matcher(inputLine);
 				    	if(matcher.find()) {
-				    		translateDeclarationStmt(inputLine, output);
+				    		translateDeclarationStmt(inputLine, tabCount, output);
 				    	}
 				    	else {
 				    		// Variable initialization
