@@ -1,8 +1,19 @@
-let int myVar;
-const double tempVar = 8;
+let myVar;
+const tempVar = 8;
 myVar = 5+3;
 speak("myVar value: " + myVar);
-fun add(x,y):
-	const String temp = "This is my string";
-	return getCustomFunction(a+b, c);
+fun add(int x, int y):
+	const temp = "This is my string";
+	return 5;
 speak("Test");
+
+fun double(boolean x):
+	return on;
+	
+const newVar = on;
+fun compare(x,y):
+	if(x):
+		return on;
+	return off;
+	
+compare(on, off);
