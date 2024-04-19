@@ -85,6 +85,7 @@ public class Translator {
 		//System.out.println("Symbol table: " + symbolTable);
 		// Check if initialized variable has been declared
 		String varName = line.substring(0, line.indexOf("=")).strip();
+		//TODO: iteratively check for other variables defined in larger scope by iterating down to tabCount 0
 		if(!symbolTable.containsKey(varName + tabCount)) {
 			throw new ParseException("ERROR: Variable " + varName + " has not been declared. Use the const|let|var keywords", 0);
 		}
@@ -113,7 +114,6 @@ public class Translator {
 	public static void translateReturnStmt(String line, List<String> output) {
 		// Return statements don't need to be translated
 		output.add(line);
-		
 	}
 	
 	/*
