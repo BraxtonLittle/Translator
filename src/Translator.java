@@ -216,7 +216,6 @@ public class Translator {
 		while(subScanner.hasNextLine()) {
 			String inputLine = subScanner.nextLine();
 			if(subscannerLineCount>=currentLineCount+1) {
-				//System.out.println("Subscanner: " + inputLine);
 				int readTabCount = countTabs(inputLine);
 				// If tab counts mismatch, we've broken out of scope without finding
 				// a return statement
@@ -234,7 +233,6 @@ public class Translator {
 			subscannerLineCount+=1;
 		}
 		
-		
 		// Interpret the return type from the return statement line, or void
 		// if no return statement was found in this scope
 		String returnType;
@@ -247,16 +245,36 @@ public class Translator {
 			returnType = "void";
 		}
 		symbolTable.put(functionName, returnType);
-		output.add("public static " + returnType + " " + functionName + "\n{");
+		String funNameWithParams = line.substring(line.indexOf(" ")+1, line.length()-1);
+		output.add("public static " + returnType + " " + funNameWithParams + "\n{");
 		
-		currentLineCount = translate(tabCount+1, scanner, symbolTable, output, currentLineCount);
+		
+		currentLineCount++;
+		lineCount++;
+		try {
+			File input = new File("input.txt");
+			Scanner sub = new Scanner(input);
+			for(int i =1; i<currentLineCount;i++) {
+				sub.nextLine();
+			}
+			currentLineCount = translate(tabCount+1,sub,symbolTable,output,currentLineCount);
+			//System.out.println("LC before entering func " + functionName + ": " + lineCount + " vs after: " + currentLineCount);
+		}
+		catch(Exception e) {
+			System.out.println("Failed to read file: " + e);
+		}
+		int dif = currentLineCount - lineCount;
+		while (dif > 0) {
+			scanner.nextLine();
+			dif--;
+		}
 		
 		// TODO: Remove variables from symbol table defined in local function scope
 		
 		// Add a closing bracket to signify the end of the function, and add 2 to the updated line
 		// count to account for the opening and closing brackets
 		output.add("}");
-		return currentLineCount + 2;
+		return currentLineCount;
 	}
 	
 	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException {
@@ -289,7 +307,7 @@ public class Translator {
 		}
 		
 		
-		output.add("}");
+		output.add("\t".repeat(tabCount) + "}");
 		// increment currentLineCount with each line of the body of conditional and return it
 		// so we have an accurate line count for the translate function
 		return currentLineCount;
