@@ -252,12 +252,37 @@ public class Translator {
 		return currentLineCount + 2;
 	}
 	
-	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line, List<String> output, int lineCount) {
+	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line,Scanner subScanner, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount 
 		// translate(tabCount+1, scanner, output);
+		line = line.replace(":", "{");
+		if (line.contains("elif")) {
+			line = line.replace("elif", "else if");
+		}
+		currentLineCount++;
+		lineCount++;
+		output.add(line);
+		try {
+			File input = new File("input.txt");
+			Scanner sub = new Scanner(input);
+			for(int i =1; i<currentLineCount;i++) {
+				sub.nextLine();
+			}
+			currentLineCount = translate(tabCount+1,sub,subScanner,symbolTable,output,currentLineCount);
+		}
+		catch(Exception e) {
+			System.out.println("Failed to read file: " + e);
+		}
+		int dif = currentLineCount - lineCount;
+		while (dif > 0) {
+			scanner.nextLine();
+			dif--;
+		}
 		
+		
+		output.add("}");
 		// increment currentLineCount with each line of the body of conditional and return it
 		// so we have an accurate line count for the translate function
 		return currentLineCount;
@@ -315,10 +340,10 @@ public class Translator {
 		    }
 		    else {
 		    	// Conditional statement
-		    	pattern = Pattern.compile("if(.*):");
-		    	matcher = pattern.matcher(inputLine);
+		    	pattern = Pattern.compile("(if|elif|else)(.*):");
+		    	matcher = pattern.matcher(inputLine); 
 		    	if(matcher.find()) {
-		    		currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, output, currentLineCount);
+		    		currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, subScanner, symbolTable, output, currentLineCount);
 		    	}
 		    	else {
 		    		// Print statement

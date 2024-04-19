@@ -2,6 +2,12 @@ let myVar;
 const tempVar = 8;
 myVar = 5+3;
 speak("myVar value: " + myVar);
+if (6 > 8):
+	speak("Hello");
+elif (6 == 8):
+	speak("Good bye");
+else:
+	speak("Penis");
 fun add(int x, int y):
 	const temp = "This is my string";
 	return 5;
@@ -17,3 +23,4 @@ fun compare(x,y):
 	return off;
 	
 compare(on, off);
+
