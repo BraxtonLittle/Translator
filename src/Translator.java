@@ -259,7 +259,7 @@ public class Translator {
 		return currentLineCount + 2;
 	}
 	
-	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line,Scanner subScanner, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException {
+	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount 
@@ -277,7 +277,7 @@ public class Translator {
 			for(int i =1; i<currentLineCount;i++) {
 				sub.nextLine();
 			}
-			currentLineCount = translate(tabCount+1,sub,subScanner,symbolTable,output,currentLineCount);
+			currentLineCount = translate(tabCount+1,sub,symbolTable,output,currentLineCount);
 		}
 		catch(Exception e) {
 			System.out.println("Failed to read file: " + e);
@@ -351,7 +351,7 @@ public class Translator {
 		    	pattern = Pattern.compile("(if|elif|else)(.*):");
 		    	matcher = pattern.matcher(inputLine); 
 		    	if(matcher.find()) {
-		    		currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, subScanner, symbolTable, output, currentLineCount);
+		    		currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output, currentLineCount);
 		    	}
 		    	else {
 		    		// Print statement
