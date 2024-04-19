@@ -17,7 +17,9 @@ import java.util.regex.Pattern;
  * and if a let/var variable is undefined/used outside of its scope. i.e. it gets defined within
  * a conditional block and is used outside of the block, thus it would be undefined.
  * 
- * TODO: Need to translate the NOT keyword into "!" character
+ * TODO: Need to translate the NOT keyword into "!" character,
+ * need to translate let and var and const keywords into String, Integer and boolean,
+ * and need to translate on/off boolean values to true/false
  */
 
 public class Translator {
@@ -82,11 +84,12 @@ public class Translator {
 	public static void translateInitializeStmt(String line, Integer tabCount, List<String> output, Map<String, String> symbolTable) throws ParseException{
 		//System.out.println("Symbol table: " + symbolTable);
 		// Check if initialized variable has been declared
-		String varName = line.substring(0, line.indexOf("=")).strip() + tabCount;
-		if(!symbolTable.containsKey(varName)) {
+		String varName = line.substring(0, line.indexOf("=")).strip();
+		if(!symbolTable.containsKey(varName + tabCount)) {
 			throw new ParseException("ERROR: Variable " + varName + " has not been declared. Use the const|let|var keywords", 0);
 		}
-		
+		// Wait to append tabCount to end of variable name in case we need to print its name in above case for ParseException
+		varName += tabCount;
 		// Check type assignment and make sure we're not reassigning a variable to a different type, unless we're assigning
 		// a null variable to have an actual value
 		String returnedValue = line.substring(line.indexOf("=")+1).replaceAll(";", "");
@@ -194,13 +197,13 @@ public class Translator {
 		// this isn't valid in Java but also because it'll cause a bug in our implementation below
 		String functionName = line.substring(line.indexOf(" "), line.indexOf("("));
 		functionName = functionName.strip();
-		if(symbolTable.containsKey(functionName)) {
+		if(symbolTable.containsKey(functionName + tabCount)) {
 			// Check if return type is the same, same function names are allowed but
 			// their return type has to be different. This has to be done with lineCount
 			// instead of checking the subScanner's line against the main scanner
 			throw new ParseException("ERROR: Duplicate function name " + functionName + " detected", 0);
 		}
-		
+		functionName+=tabCount;
 		// Use the subScanner to retrieve the return statement line
 		String foundLine = "";
     	Matcher matcher;
@@ -212,7 +215,6 @@ public class Translator {
     	catch(FileNotFoundException e) {
     		throw new ParseException("Unable to open input.txt for using sub-scanner", 0);
     	}
-    	//TODO: Make sure the line count is correct System.out.println("Processing function " + functionName + " on line " + currentLineCount);
 		while(subScanner.hasNextLine()) {
 			String inputLine = subScanner.nextLine();
 			if(subscannerLineCount>=currentLineCount+1) {
@@ -251,17 +253,17 @@ public class Translator {
 		
 		currentLineCount++;
 		lineCount++;
+		Scanner sub;
 		try {
 			File input = new File("input.txt");
-			Scanner sub = new Scanner(input);
+			sub = new Scanner(input);
 			for(int i =1; i<currentLineCount;i++) {
 				sub.nextLine();
 			}
 			currentLineCount = translate(tabCount+1,sub,symbolTable,output,currentLineCount);
-			//System.out.println("LC before entering func " + functionName + ": " + lineCount + " vs after: " + currentLineCount);
 		}
 		catch(Exception e) {
-			System.out.println("Failed to read file: " + e);
+			throw new ParseException(e.getMessage(), 0);
 		}
 		int dif = currentLineCount - lineCount;
 		while (dif > 0) {
@@ -324,20 +326,6 @@ public class Translator {
 		return 0;
 	}
 	
-	public static int getNewlineCount(String line) {
-		int count = 0;
-		for(int i = 0; i<line.length(); i++) {
-			if(i=='\n') {
-				count++;
-			}
-		}
-		//TODO: Not sure why this is returning 0 for first line and 1 for
-		// subsequent lines
-		//System.out.println("Newline count: " + count + " for: " + line);
-		//return count;
-		return 0;
-	}
-	
 	/*
 	 * Parses through each line of the input file and uses regular
 	 * expressions to call the matching helper function for translation.
@@ -347,6 +335,8 @@ public class Translator {
 	 */
 	public static int translate(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException
 	{
+		String x
+				="";
 		int currentLineCount = lineCount;
 		while(scanner.hasNextLine()) {
 			String inputLine = scanner.nextLine();
@@ -377,7 +367,7 @@ public class Translator {
 			    	matcher = pattern.matcher(inputLine);
 			    	if(matcher.find()) {
 			    		translatePrintStmt(inputLine, output);
-			    		currentLineCount+=(1+getNewlineCount(inputLine));
+			    		currentLineCount+=1;
 			    	}
 			    	else {
 			    		// Variable declaration
@@ -385,7 +375,7 @@ public class Translator {
 				    	matcher = pattern.matcher(inputLine);
 				    	if(matcher.find()) {
 				    		translateDeclarationStmt(inputLine, tabCount, output, symbolTable);
-				    		currentLineCount+=(1+getNewlineCount(inputLine));
+				    		currentLineCount+=1;
 				    	}
 				    	else {
 				    		// Variable initialization
@@ -393,7 +383,7 @@ public class Translator {
 					    	matcher = pattern.matcher(inputLine);
 					    	if(matcher.find()) {
 					    		translateInitializeStmt(inputLine, tabCount, output, symbolTable);
-					    		currentLineCount+=(1+getNewlineCount(inputLine));
+					    		currentLineCount+=1;
 					    	}
 					    	else {
 					    		// Return statement
@@ -401,14 +391,14 @@ public class Translator {
 						    	matcher = pattern.matcher(inputLine);
 						    	if(matcher.find()) {
 						    		translateReturnStmt(inputLine, output);
-						    		currentLineCount+=(1+getNewlineCount(inputLine));
+						    		currentLineCount+=1;
 						    	}
 						    	else {
 						    		// Whitespace or blank lines
 						    		pattern = Pattern.compile("[ \\t]*");
 							    	matcher = pattern.matcher(inputLine);
 							    	if(matcher.find()) {
-							    		currentLineCount+=(1+getNewlineCount(inputLine));
+							    		currentLineCount+=1;
 							    	}
 							    	else {
 							    		throw new ParseException("Uncrecognized statement: " + inputLine, 0);
