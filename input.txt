@@ -12,10 +12,9 @@ fun add(int x, int y):
 	const temp = "This is my string";
 	return 5;
 speak("Test");
-
 fun double(boolean x):
 	return on;
-	
+
 const newVar = on;
 fun compare(x,y):
 	if(x):

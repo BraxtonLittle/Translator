@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import java.util.regex.Pattern;
  * and if a let/var variable is undefined/used outside of its scope. i.e. it gets defined within
  * a conditional block and is used outside of the block, thus it would be undefined.
  * 
+ * TODO: Need to translate the NOT keyword into "!" character
  */
 
 public class Translator {
@@ -27,13 +29,11 @@ public class Translator {
 	 */
 	public static void main(String[] args) {
 		Scanner sc = readFileFromCommandLine(args);
-		Scanner subScanner = readFileFromCommandLine(args);
 		List<String> output = new ArrayList<String>();
 		if(sc!=null) {
 			Map<String, String> symbolTable = new HashMap<>();
 			try {
-				translate(0, sc, subScanner, symbolTable, output, 1);
-				//System.out.println("Symbol table: " + symbolTable);
+				translate(0, sc, symbolTable, output, 1);
 				// Once we've read through the entire file, write output
 				writeOutput(output);
 			}
@@ -45,14 +45,14 @@ public class Translator {
 	}
 	
 	public static void translateDeclarationStmt(String line, Integer tabCount, List<String> output, Map<String, String> symbolTable) throws ParseException{
-		String varName = line.substring(line.indexOf(" "));
+		String varName = line.substring(line.indexOf(" ")).replaceAll(";", "");
 		if(varName.contains("=")) {
 			// Get everything up to equals sign if initializing variable to get variable name
 			varName = varName.substring(0, varName.indexOf("="));
 		}
 		else {
 			// Remove semicolon if just declaring variable to get variable name 
-			varName = varName.substring(0, varName.length()-1);
+			varName.replaceAll(";", "");
 		}
 		varName = varName.strip() + tabCount;
 		
@@ -64,7 +64,8 @@ public class Translator {
 		// If declaring and initializing, store type in symbol table, otherwise if just
 		// declaring variable then store its type as null in symbol table
 		if(line.contains("=")) {
-			String returnType = getReturnType(tabCount, line.substring(line.indexOf("=")+1, line.length()-1), symbolTable);
+			String returnedValue = line.substring(line.indexOf("=")+1).replaceAll(";", "");
+			String returnType = getReturnType(tabCount, returnedValue, symbolTable);
 			symbolTable.put(varName, returnType);
 		}
 		else {
@@ -79,6 +80,7 @@ public class Translator {
 	}
 	
 	public static void translateInitializeStmt(String line, Integer tabCount, List<String> output, Map<String, String> symbolTable) throws ParseException{
+		//System.out.println("Symbol table: " + symbolTable);
 		// Check if initialized variable has been declared
 		String varName = line.substring(0, line.indexOf("=")).strip() + tabCount;
 		if(!symbolTable.containsKey(varName)) {
@@ -87,7 +89,8 @@ public class Translator {
 		
 		// Check type assignment and make sure we're not reassigning a variable to a different type, unless we're assigning
 		// a null variable to have an actual value
-		String newlyInitializedType = getReturnType(tabCount, line.substring(line.indexOf("=")+1, line.length()-1), symbolTable);
+		String returnedValue = line.substring(line.indexOf("=")+1).replaceAll(";", "");
+		String newlyInitializedType = getReturnType(tabCount, returnedValue, symbolTable);
 		String originallyInitializedType = symbolTable.get(varName);
 		if(originallyInitializedType!="null" && originallyInitializedType!=newlyInitializedType) {
 			throw new ParseException("ERROR: You cannot assign " + varName + " to be of type "
@@ -149,11 +152,10 @@ public class Translator {
 	    pattern = Pattern.compile("-?[0-9]+");
 	    matcher = pattern.matcher(variableToSearch);
 	    if(matcher.find()) {
-	    	return "Integer";
+	    	return "int";
 	    }
 	    
 	    if(inputLine.contains("on") || inputLine.contains("off")) {
-	    	System.out.println("SHOULD BE BOOLEAN");
 	    	return "boolean";
 	    }
 	    
@@ -167,7 +169,7 @@ public class Translator {
 		
 		for(String arithmeticOp : arithmeticOps) {
 			if(inputLine.contains(arithmeticOp)) {
-				return "Integer";
+				return "int";
 			}
 		}
 		
@@ -186,7 +188,7 @@ public class Translator {
 	 * the translate() function with an increased tabCount value to indicate scope.
 	 * 
 	 */
-	public static int translateFunction(Integer tabCount, Scanner scanner, Scanner subScanner, Map<String, String> symbolTable, String line, List<String> output, int lineCount) throws ParseException{
+	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, String line, List<String> output, int lineCount) throws ParseException{
 		int currentLineCount = lineCount;
 		// Shows an error if a function exists with same name and return type, mostly because
 		// this isn't valid in Java but also because it'll cause a bug in our implementation below
@@ -203,15 +205,22 @@ public class Translator {
 		String foundLine = "";
     	Matcher matcher;
     	int subscannerLineCount = 1;
+    	Scanner subScanner;
+    	try {
+    		subScanner = new Scanner(new File("input.txt"));
+    	}
+    	catch(FileNotFoundException e) {
+    		throw new ParseException("Unable to open input.txt for using sub-scanner", 0);
+    	}
     	//TODO: Make sure the line count is correct System.out.println("Processing function " + functionName + " on line " + currentLineCount);
 		while(subScanner.hasNextLine()) {
 			String inputLine = subScanner.nextLine();
 			if(subscannerLineCount>=currentLineCount+1) {
+				//System.out.println("Subscanner: " + inputLine);
 				int readTabCount = countTabs(inputLine);
 				// If tab counts mismatch, we've broken out of scope without finding
 				// a return statement
 				if(readTabCount-1!=tabCount) {
-					System.out.println("Broke because: " + inputLine + "| has " + (readTabCount-1) + " and current tab count is " + tabCount + " on line: " + currentLineCount);
 					break;
 				}
 				String regex = "\t".repeat(readTabCount) + "return .*;";
@@ -225,14 +234,12 @@ public class Translator {
 			subscannerLineCount+=1;
 		}
 		
-		// Reset the subScanner for future use in nested bodies
-		subScanner.reset();
 		
 		// Interpret the return type from the return statement line, or void
 		// if no return statement was found in this scope
 		String returnType;
 		if(foundLine.length()>0) {
-			foundLine = foundLine.strip().substring(foundLine.indexOf(" "), foundLine.length()-1);
+			foundLine = foundLine.strip().substring(foundLine.indexOf(" ")).replaceAll(";", "");
 			returnType = getReturnType(tabCount, foundLine, symbolTable);
 		}
 		else {
@@ -242,7 +249,7 @@ public class Translator {
 		symbolTable.put(functionName, returnType);
 		output.add("public static " + returnType + " " + functionName + "\n{");
 		
-		currentLineCount = translate(tabCount+1, scanner, subScanner, symbolTable, output, currentLineCount);
+		currentLineCount = translate(tabCount+1, scanner, symbolTable, output, currentLineCount);
 		
 		// TODO: Remove variables from symbol table defined in local function scope
 		
@@ -320,11 +327,12 @@ public class Translator {
 	 * call scanner.nextLine in their own helper methods and return here
 	 * to continue parsing through the rest of the input file afterwards.
 	 */
-	public static int translate(Integer tabCount, Scanner scanner, Scanner subScanner, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException
+	public static int translate(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException
 	{
 		int currentLineCount = lineCount;
 		while(scanner.hasNextLine()) {
 			String inputLine = scanner.nextLine();
+			
 			
 			int readTabCount = countTabs(inputLine);
 			if(tabCount!=readTabCount) {
@@ -336,7 +344,7 @@ public class Translator {
 			Pattern pattern = Pattern.compile("fun .*(.*):");
 		    Matcher matcher = pattern.matcher(inputLine);
 		    if(matcher.find()) {
-		    	currentLineCount = translateFunction(tabCount, scanner, subScanner, symbolTable, inputLine, output, currentLineCount);
+		    	currentLineCount = translateFunction(tabCount, scanner, symbolTable, inputLine, output, currentLineCount);
 		    }
 		    else {
 		    	// Conditional statement
