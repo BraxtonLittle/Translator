@@ -1,4 +1,5 @@
 let myVar=8;
+let otherVar = on AND off;
 fun add(int x, int y):
 	const temp = "This is my string";
 	return 5;
@@ -9,7 +10,7 @@ fun double(boolean x):
 
 const newVar = on;
 fun compare(x,y):
-	if(x):
+	if(x AND y):
 		return on;
 	return off;
 	

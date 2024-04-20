@@ -422,11 +422,57 @@ public class Translator {
 	public static void writeOutput(List<String> output) {
 		// For now, we'll just print the output to check if its
 		// correct then worry about actually writing to a file later
+		cleanOutput(output);
 		for(String translatedLine : output) {
+			
 			System.out.println(translatedLine);
 		}
 	}
 	
+	public static void cleanOutput(List<String> output) {
+		int i =0;
+		while(i < output.size()) {
+			String temp;
+			if(output.get(i).contains("AND")) {
+				 temp =output.get(i).replace(" AND ", " && ");
+				 output.set(i, temp);
+			}
+			if(output.get(i).contains("OR")) {
+				temp = output.get(i).replace(" OR ", " || ");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains("NOT")) {
+				temp = output.get(i).replace(" NOT ", "!");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains(" on;")) {
+				temp = output.get(i).replace(" on;"," true;");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains(" off;")) {
+				temp = output.get(i).replace(" off;"," false;");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains(" on ")) {
+				temp = output.get(i).replace(" on "," true ");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains(" off ")) {
+				temp = output.get(i).replace(" off "," false ");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains("on,")) {
+				temp = output.get(i).replace("on,","true,");
+				output.set(i, temp);
+			}
+			if(output.get(i).contains("off,")) {
+				temp = output.get(i).replace("off,","false,");
+				output.set(i, temp);
+			}
+			i++;
+			
+		}
+	}
 	/*
 	 * Checks that a filename was passed in the command line, tries
 	 * to open the file and create a scanner object to read it, then
