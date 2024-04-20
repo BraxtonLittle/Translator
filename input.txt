@@ -1,5 +1,10 @@
 let myVar=8;
 let otherVar = on AND off;
+while(on ):
+	if( on OR off):
+		speak("counting...");
+	else:
+		speak("Not counting...");
 fun add(int x, int y):
 	const temp = "This is my string";
 	return 5;
