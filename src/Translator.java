@@ -46,6 +46,7 @@ public class Translator {
 
 	public static void translateDeclarationStmt(String line, Integer tabCount, List<String> output,
 			Map<String, String> symbolTable) throws ParseException {
+		System.out.println("Translating declaration statement...");
 		String varName = line.substring(line.indexOf(" ")).replaceAll(";", "");
 		if (varName.contains("=")) {
 			// Get everything up to equals sign if initializing variable to get variable
@@ -76,10 +77,12 @@ public class Translator {
 		// line = line.substring(line.indexOf(" ")+1);
 		// line = "\t".repeat(tabCount) + line;
 		output.add(line);
+		System.out.println("declaration...DONE!");
 	}
 
 	public static void translateInitializeStmt(String line, Integer tabCount, List<String> output,
 			Map<String, String> symbolTable) throws ParseException {
+		System.out.println("Parsing variable initalization...");
 		// System.out.println("Symbol table: " + symbolTable);
 		// Check if initialized variable has been declared
 		String varName = line.substring(0, line.indexOf("=")).strip();
@@ -104,12 +107,15 @@ public class Translator {
 		} else {
 			symbolTable.put(varName, newlyInitializedType);
 		}
+		System.out.println("intitalization...DONE!");
 		output.add(line);
 	}
 
 	public static void translatePrintStmt(String line, List<String> output) {
+		System.out.println("Translating speak statement...");
 		line = line.replace("speak", "System.out.print");
 		output.add(line);
+		System.out.println("speak...DONE!");
 	}
 
 	public static void translateReturnStmt(String line, List<String> output) {
@@ -195,6 +201,7 @@ public class Translator {
 	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, String line,
 			List<String> output, int lineCount) throws ParseException {
 		int currentLineCount = lineCount;
+		System.out.println("Parsing function head...");	
 		// Shows an error if a function exists with same name and return type, mostly
 		// because
 		// this isn't valid in Java but also because it'll cause a bug in our
@@ -207,7 +214,9 @@ public class Translator {
 			// instead of checking the subScanner's line against the main scanner
 			throw new ParseException("ERROR: Duplicate function name " + functionName + " detected", 0);
 		}
+		System.out.println("funciton head...DONE!");	
 		functionName += tabCount;
+		System.out.println("Retriving return statment...");	
 		// Use the subScanner to retrieve the return statement line
 		String foundLine = "";
 		Matcher matcher;
@@ -251,10 +260,11 @@ public class Translator {
 		symbolTable.put(functionName, returnType);
 		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
 		output.add("public static " + returnType + " " + funNameWithParams + "\n{");
-
+		System.out.println("return statement...DONE!");	
 		currentLineCount++;
 		lineCount++;
 		Scanner sub;
+		System.out.println("Translatng function body....");
 		try {
 			File input = new File("input.txt");
 			sub = new Scanner(input);
@@ -270,6 +280,7 @@ public class Translator {
 			scanner.nextLine();
 			dif--;
 		}
+		System.out.println("function body...DONE!");	
 
 		// TODO: Remove variables from symbol table defined in local function scope
 
@@ -289,6 +300,7 @@ public class Translator {
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
 		// translate(tabCount+1, scanner, output);
+		System.out.println("Parsing conditional head...");
 		line = line.replace(":", "{");
 		if (line.contains("elif")) {
 			line = line.replace("elif", "else if");
@@ -296,6 +308,8 @@ public class Translator {
 		currentLineCount++;
 		lineCount++;
 		output.add(line);
+		System.out.println("conditional head....DONE!");
+		System.out.println("Parsing conditional body...");
 		try {
 			File input = new File("input.txt");
 			Scanner sub = new Scanner(input);
@@ -306,6 +320,7 @@ public class Translator {
 		} catch (Exception e) {
 			System.out.println("Failed to read file: " + e);
 		}
+		System.out.println("conditional body...DONE!");
 		int dif = currentLineCount - lineCount;
 		while (dif > 0) {
 			scanner.nextLine();
@@ -328,10 +343,13 @@ public class Translator {
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
 		// translate(tabCount+1, scanner, output);
+		System.out.println("Parsing loop head...");
 		line = line.replace(":", "{");
 		currentLineCount++;
 		lineCount++;
 		output.add(line);
+		System.out.println("loop head...DONE!");
+		System.out.println("Parsing loop body...");
 		try {
 			File input = new File("input.txt");
 			Scanner sub = new Scanner(input);
@@ -347,7 +365,7 @@ public class Translator {
 			scanner.nextLine();
 			dif--;
 		}
-
+		System.out.println("loop body...DONE!");
 		output.add("\t".repeat(tabCount) + "}");
 		// increment currentLineCount with each line of the body of conditional and
 		// return it
@@ -535,7 +553,7 @@ public class Translator {
 	public static Scanner readFileFromCommandLine(String[] args) {
 		if (args.length > 0) {
 			try {
-				File input = new File("input.txt");
+				File input = new File(args[0]);
 				Scanner sc = new Scanner(input);
 				return sc;
 			} catch (Exception e) {
