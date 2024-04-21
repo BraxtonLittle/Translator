@@ -1,5 +1,7 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,9 +19,8 @@ import java.util.regex.Pattern;
  * and if a let/var variable is undefined/used outside of its scope. i.e. it gets defined within
  * a conditional block and is used outside of the block, thus it would be undefined.
  * 
- * TODO: Need to translate the NOT keyword into "!" character,
- * need to translate let and var and const keywords into String, Integer and boolean,
- * and need to translate on/off boolean values to true/false
+ * TODO: need to translate let and var and const keywords into String, Integer and boolean.
+ * 
  */
 
 public class Translator {
@@ -36,7 +37,7 @@ public class Translator {
 			try {
 				translate(0, sc, symbolTable, output, 1);
 				// Once we've read through the entire file, write output
-				writeOutput(output);
+				writeOutput(output,args);
 			} catch (ParseException e) {
 				System.out.println(e.getMessage());
 			}
@@ -477,14 +478,24 @@ public class Translator {
 	 * Writes the contents of the output ArrayList, which contains translated lines
 	 * of Java code, to a Java file that can then be compiled and ran.
 	 */
-	public static void writeOutput(List<String> output) {
+	public static void writeOutput(List<String> output,String[] args) {
 		// For now, we'll just print the output to check if its
 		// correct then worry about actually writing to a file later
 		cleanOutput(output);
-		for (String translatedLine : output) {
-
-			System.out.println(translatedLine);
-		}
+		try {
+		      FileWriter myWriter = new FileWriter(args[1]);
+		      for (String translatedLine : output) {
+		    	  myWriter.write(translatedLine + "\n");
+				}
+		      myWriter.close();
+		      System.out.println("Successfully wrote to the file.");
+		    } catch (IOException e) {
+		      System.out.println("An error occurred.");
+		      e.printStackTrace();
+		    }
+	
+		
+			
 	}
 
 	/*
@@ -492,6 +503,7 @@ public class Translator {
 	 * our language grammar.
 	 */
 	public static void cleanOutput(List<String> output) {
+		System.out.println("Changing keywords...");
 		int i = 0;
 		while (i < output.size()) {
 			String temp;
@@ -542,6 +554,7 @@ public class Translator {
 			i++;
 
 		}
+		System.out.println("Changing keywords...DONE!");
 	}
 
 	/*
