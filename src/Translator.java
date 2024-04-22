@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -14,10 +15,7 @@ import java.util.regex.Pattern;
 /*
  * General project notes:
  * 
- * 
- * TODO: Change symbol table for const re-initialization,
  * Check for in programs: Wrong types, no variable declared, re-initializing
- * 
  * 
  * 
  */
@@ -32,7 +30,7 @@ public class Translator {
 		Scanner sc = readFileFromCommandLine(args);
 		List<String> output = new ArrayList<String>();
 		if (sc != null) {
-			Map<String, String> symbolTable = new HashMap<>();
+			Map<String, String[]> symbolTable = new LinkedHashMap<>();
 			try {
 				translate(0, sc, symbolTable, output, 1,args);
 				// Once we've read through the entire file, write output
@@ -45,9 +43,10 @@ public class Translator {
 	}
 
 	public static void translateDeclarationStmt(String line, Integer tabCount, List<String> output,
-			Map<String, String> symbolTable) throws ParseException {
+			Map<String, String[]> symbolTable) throws ParseException {
 		System.out.println("Translating declaration statement...");
 		String varName = line.substring(line.indexOf(" ")).replaceAll(";", "");
+		String scope = line.substring(0, line.indexOf(" "));
 		if (varName.contains("=")) {
 			// Get everything up to equals sign if initializing variable to get variable
 			// name
@@ -70,9 +69,11 @@ public class Translator {
 		if (line.contains("=")) {
 			String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
 			returnType = getReturnType(tabCount, returnedValue, symbolTable);
-			symbolTable.put(varName + tabCount, returnType);
+			String[] mapContents = {returnType, scope};
+			symbolTable.put(varName + tabCount, mapContents);
 		} else {
-			symbolTable.put(varName + tabCount, "null");
+			String[] mapContents = {"null", scope};
+			symbolTable.put(varName + tabCount, mapContents);
 			returnType = "";
 		}
 
@@ -85,7 +86,7 @@ public class Translator {
 	}
 
 	public static void translateInitializeStmt(String line, Integer tabCount, List<String> output,
-			Map<String, String> symbolTable) throws ParseException {
+			Map<String, String[]> symbolTable) throws ParseException {
 		System.out.println("Parsing variable initalization...");
 		// Check if initialized variable has been declared
 		String varName = line.substring(0, line.indexOf("=")).strip();
@@ -108,12 +109,17 @@ public class Translator {
 		// a null variable to have an actual value
 		String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
 		String newlyInitializedType = getReturnType(tabCount, returnedValue, symbolTable);
-		String originallyInitializedType = symbolTable.get(varName + variableTabCount);
+		String originallyInitializedType = symbolTable.get(varName + variableTabCount)[0];
+		String originalScope = symbolTable.get(varName + variableTabCount)[1];
+		if(originalScope.equals("const")) {
+			throw new ParseException("ERROR: You cannot re-assign the const variable " + varName + " to a new value!", 0);
+		}
 		if (originallyInitializedType != "null" && originallyInitializedType != newlyInitializedType) {
 			throw new ParseException("ERROR: You cannot assign " + varName + " to be of type " + newlyInitializedType
 					+ " because it was declared as a " + symbolTable.get(varName + variableTabCount), 0);
 		} else {
-			symbolTable.put(varName + variableTabCount, newlyInitializedType);
+			String[] mapContents = {newlyInitializedType, originalScope};
+			symbolTable.put(varName + variableTabCount, mapContents);
 		}
 		System.out.println("intitalization...DONE!");
 		output.add(line);
@@ -143,7 +149,7 @@ public class Translator {
 	 * returning a variable of sorts so use the return type of that variable stored
 	 * in the lookup table.
 	 */
-	public static String getReturnType(Integer tabCount, String inputLine, Map<String, String> symbolTable)
+	public static String getReturnType(Integer tabCount, String inputLine, Map<String, String[]> symbolTable)
 			throws ParseException {
 		String variableToSearch = inputLine.strip();
 		// If we're returning a function, we want to lookup only the name in our
@@ -153,7 +159,7 @@ public class Translator {
 		if (matcher.find()) {
 			variableToSearch = variableToSearch.substring(0, variableToSearch.indexOf("(")).strip();
 			if (symbolTable.containsKey(variableToSearch)) {
-				return symbolTable.get(variableToSearch);
+				return symbolTable.get(variableToSearch)[0];
 			} else {
 				// Function definition wasn't stored in symbol table, meaning function
 				// hasn't been defined yet
@@ -206,7 +212,7 @@ public class Translator {
 	 * translate() function with an increased tabCount value to indicate scope.
 	 * 
 	 */
-	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, String line,
+	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable, String line,
 			List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		System.out.println("Parsing function head...");	
@@ -265,7 +271,8 @@ public class Translator {
 			// No return line, function type is void
 			returnType = "void";
 		}
-		symbolTable.put(functionName, returnType);
+		String[] mapContents = {returnType, "func"};
+		symbolTable.put(functionName, mapContents);
 		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
 		output.add("public static " + returnType + " " + funNameWithParams + "{");
 		System.out.println("return statement...DONE!");	
@@ -308,7 +315,7 @@ public class Translator {
 	 * Translates if statements into proper java grammar.
 	 */
 	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line,
-			Map<String, String> symbolTable, List<String> output, int lineCount, String[] args) throws ParseException {
+			Map<String, String[]> symbolTable, List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
@@ -350,7 +357,7 @@ public class Translator {
 	/*
 	 * Translates loops into proper java grammar
 	 */
-	public static int translateLoops(Integer tabCount, Scanner scanner, String line, Map<String, String> symbolTable,
+	public static int translateLoops(Integer tabCount, Scanner scanner, String line, Map<String, String[]> symbolTable,
 			List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
@@ -404,7 +411,7 @@ public class Translator {
 	 * methods and return here to continue parsing through the rest of the input
 	 * file afterwards.
 	 */
-	public static int translate(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, List<String> output,
+	public static int translate(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable, List<String> output,
 			int lineCount, String[] args) throws ParseException {
 		String x = "";
 		int currentLineCount = lineCount;

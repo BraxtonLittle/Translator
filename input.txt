@@ -1,7 +1,8 @@
-let myVar1 = 8;
+const fun = 0;
 fun forFun(String y):
-	myVar1 = 10;
 	let temp = "Hello";
+	fun = 8;
+	
 	
 fun noFun():
 	myVar1 = 9;
