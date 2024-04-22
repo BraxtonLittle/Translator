@@ -1,4 +1,8 @@
 public class output{
-	int fun = 0;
-	fun = 10;
+	public static void main(String[] args){
+		primary();
+	}
+	public static void primary(){
+		int x = 9;
+	}
 }

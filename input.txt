@@ -1,9 +1,2 @@
-const fun = 0;
-fun forFun(String y):
-	let temp = "Hello";
-	fun = 8;
-	
-	
-fun noFun():
-	myVar1 = 9;
-
+fun primary():
+	let x = 9;

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class Translator {
 		Scanner sc = readFileFromCommandLine(args);
 		List<String> output = new ArrayList<String>();
 		if (sc != null) {
-			Map<String, String[]> symbolTable = new LinkedHashMap<>();
+			Map<String, String[]> symbolTable = new HashMap<>();
 			try {
 				translate(0, sc, symbolTable, output, 1,args);
 				// Once we've read through the entire file, write output
@@ -168,8 +169,6 @@ public class Translator {
 			}
 		}
 
-		// Not returning a function, check primitive values
-
 		// Check if the value is an integer. "-?" searches for an optional dash to
 		// handle
 		// negative integers, and "\d+" searches for one or more digits
@@ -200,6 +199,10 @@ public class Translator {
 		if (inputLine.contains("\"")) {
 			return "String";
 		}
+		
+		if (symbolTable.containsKey(variableToSearch+tabCount)) {
+			return symbolTable.get(variableToSearch+tabCount)[0];
+		}
 
 		// If no return type found, print error
 		throw new ParseException("ERROR: A return type could not be found for: " + inputLine, 0);
@@ -228,9 +231,9 @@ public class Translator {
 			// instead of checking the subScanner's line against the main scanner
 			throw new ParseException("ERROR: Duplicate function name " + functionName + " detected", 0);
 		}
-		System.out.println("funciton head...DONE!");	
+		System.out.println("function head...DONE!");	
 		functionName += tabCount;
-		System.out.println("Retriving return statment...");	
+		System.out.println("Retrieving return statment...");	
 		// Use the subScanner to retrieve the return statement line
 		String foundLine = "";
 		Matcher matcher;
@@ -261,25 +264,12 @@ public class Translator {
 			subscannerLineCount += 1;
 		}
 
-		// Interpret the return type from the return statement line, or void
-		// if no return statement was found in this scope
-		String returnType;
-		if (foundLine.length() > 0) {
-			foundLine = foundLine.strip().substring(foundLine.indexOf(" ")).replaceAll(";", "");
-			returnType = getReturnType(tabCount, foundLine, symbolTable);
-		} else {
-			// No return line, function type is void
-			returnType = "void";
-		}
-		String[] mapContents = {returnType, "func"};
-		symbolTable.put(functionName, mapContents);
-		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
-		output.add("public static " + returnType + " " + funNameWithParams + "{");
-		System.out.println("return statement...DONE!");	
 		currentLineCount++;
 		lineCount++;
 		Scanner sub;
-		System.out.println("Translatng function body....");
+		System.out.println("Translating function body....");
+		// Add dummy function header to output to be translated after getting return type
+		output.add(functionName+"()");
 		try {
 			File input = new File(args[0]);
 			sub = new Scanner(input);
@@ -295,13 +285,36 @@ public class Translator {
 			scanner.nextLine();
 			dif--;
 		}
-		System.out.println("function body...DONE!");	
-		
-		
-		for(String varName : symbolTable.keySet()) {
-			if(varName.charAt(varName.length()-1)=='1') {
-				symbolTable.remove(varName);
+		System.out.println("function body...DONE!");
+		// Interpret the return type from the return statement line, or void
+		// if no return statement was found in this scope
+		String returnType;
+		if (foundLine.length() > 0) {
+			foundLine = foundLine.strip().substring(foundLine.indexOf(" ")).replaceAll(";", "");
+			returnType = getReturnType(tabCount+1, foundLine, symbolTable);
+		} else {
+			// No return line, function type is void
+			returnType = "void";
+		}
+		String[] mapContents = {returnType, "func"};
+		symbolTable.put(functionName, mapContents);
+		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
+		for(int i = 0; i<output.size(); i++) {
+			String outputLine = output.get(i);
+			if(outputLine.equals(functionName + "()")) {
+				output.set(i, "public static " + returnType + " " + funNameWithParams + "{");
 			}
+		}
+		System.out.println("return statement...DONE!");	
+		
+		Iterator<Map.Entry<String, String[]>> itr = symbolTable.entrySet().iterator();
+		while(itr.hasNext())
+		{
+		   Map.Entry<String, String[]> entry = itr.next();
+		   if(entry.getKey().charAt(entry.getKey().length()-1)=='1')
+		   {
+		      itr.remove();
+		   }
 		}
 
 		// Add a closing bracket to signify the end of the function, and add 2 to the
@@ -505,7 +518,9 @@ public class Translator {
 		      FileWriter myWriter = new FileWriter(args[1]);
 		      String heading = args[1];
 		      heading = heading.replaceAll(".java", "");
-		      myWriter.write("public class " + heading + "{" + "\n");
+		      myWriter.write("public class " + heading + "{\n");
+		      myWriter.write("\tpublic static void main(String[] args)" + "{\n");
+		      myWriter.write("\t\tprimary();\n\t}\n");
 		      for (String translatedLine : output) {
 		    	  myWriter.write("\t" + translatedLine + "\n");
 				}
