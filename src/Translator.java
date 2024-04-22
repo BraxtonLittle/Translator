@@ -34,7 +34,7 @@ public class Translator {
 		if (sc != null) {
 			Map<String, String> symbolTable = new HashMap<>();
 			try {
-				translate(0, sc, symbolTable, output, 1);
+				translate(0, sc, symbolTable, output, 1,args);
 				// Once we've read through the entire file, write output
 				writeOutput(output,args);
 			} catch (ParseException e) {
@@ -207,7 +207,7 @@ public class Translator {
 	 * 
 	 */
 	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, String line,
-			List<String> output, int lineCount) throws ParseException {
+			List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		System.out.println("Parsing function head...");	
 		// Shows an error if a function exists with same name and return type, mostly
@@ -231,9 +231,9 @@ public class Translator {
 		int subscannerLineCount = 1;
 		Scanner subScanner;
 		try {
-			subScanner = new Scanner(new File("input.txt"));
+			subScanner = new Scanner(new File(args[0]));
 		} catch (FileNotFoundException e) {
-			throw new ParseException("Unable to open input.txt for using sub-scanner", 0);
+			throw new ParseException("Unable to open file for using sub-scanner", 0);
 		}
 		while (subScanner.hasNextLine()) {
 			String inputLine = subScanner.nextLine();
@@ -274,12 +274,12 @@ public class Translator {
 		Scanner sub;
 		System.out.println("Translatng function body....");
 		try {
-			File input = new File("input.txt");
+			File input = new File(args[0]);
 			sub = new Scanner(input);
 			for (int i = 1; i < currentLineCount; i++) {
 				sub.nextLine();
 			}
-			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount);
+			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount,args);
 		} catch (Exception e) {
 			throw new ParseException(e.getMessage(), 0);
 		}
@@ -308,7 +308,7 @@ public class Translator {
 	 * Translates if statements into proper java grammar.
 	 */
 	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line,
-			Map<String, String> symbolTable, List<String> output, int lineCount) throws ParseException {
+			Map<String, String> symbolTable, List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
@@ -324,12 +324,12 @@ public class Translator {
 		System.out.println("conditional head....DONE!");
 		System.out.println("Parsing conditional body...");
 		try {
-			File input = new File("input.txt");
+			File input = new File(args[0]);
 			Scanner sub = new Scanner(input);
 			for (int i = 1; i < currentLineCount; i++) {
 				sub.nextLine();
 			}
-			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount);
+			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount, args);
 		} catch (Exception e) {
 			System.out.println("Failed to read file: " + e);
 		}
@@ -351,7 +351,7 @@ public class Translator {
 	 * Translates loops into proper java grammar
 	 */
 	public static int translateLoops(Integer tabCount, Scanner scanner, String line, Map<String, String> symbolTable,
-			List<String> output, int lineCount) throws ParseException {
+			List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
@@ -364,12 +364,12 @@ public class Translator {
 		System.out.println("loop head...DONE!");
 		System.out.println("Parsing loop body...");
 		try {
-			File input = new File("input.txt");
+			File input = new File(args[0]);
 			Scanner sub = new Scanner(input);
 			for (int i = 1; i < currentLineCount; i++) {
 				sub.nextLine();
 			}
-			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount);
+			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount,args);
 		} catch (Exception e) {
 			System.out.println("Failed to read file: " + e);
 		}
@@ -405,7 +405,7 @@ public class Translator {
 	 * file afterwards.
 	 */
 	public static int translate(Integer tabCount, Scanner scanner, Map<String, String> symbolTable, List<String> output,
-			int lineCount) throws ParseException {
+			int lineCount, String[] args) throws ParseException {
 		String x = "";
 		int currentLineCount = lineCount;
 		while (scanner.hasNextLine()) {
@@ -422,21 +422,21 @@ public class Translator {
 			Matcher matcher = pattern.matcher(inputLine);
 			if (matcher.find()) {
 				currentLineCount = translateFunction(tabCount, scanner, symbolTable, inputLine, output,
-						currentLineCount);
+						currentLineCount,args);
 			} else {
 				// Conditional statement
 				pattern = Pattern.compile("(if|elif|else)(.*):");
 				matcher = pattern.matcher(inputLine);
 				if (matcher.find()) {
 					currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output,
-							currentLineCount);
+							currentLineCount,args);
 				} else {
 					// Loops fn
 					pattern = Pattern.compile("while(.*):");
 					matcher = pattern.matcher(inputLine);
 					if (matcher.find()) {
 						currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output,
-								currentLineCount);
+								currentLineCount,args);
 					} else {
 						// Print statement
 						pattern = Pattern.compile("speak(.*);");
