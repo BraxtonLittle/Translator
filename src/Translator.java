@@ -57,7 +57,8 @@ public class Translator {
 			// Remove semicolon if just declaring variable to get variable name
 			varName.replaceAll(";", "");
 		}
-		varName = varName.strip() + tabCount;
+		varName = varName.strip();
+		String rightSide = line.substring(line.indexOf("="));
 
 		// If re-declaring a variable in the same scope, throw error
 		if (symbolTable.containsKey(varName)) {
@@ -66,18 +67,21 @@ public class Translator {
 
 		// If declaring and initializing, store type in symbol table, otherwise if just
 		// declaring variable then store its type as null in symbol table
+		String returnType;
 		if (line.contains("=")) {
 			String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
-			String returnType = getReturnType(tabCount, returnedValue, symbolTable);
+			returnType = getReturnType(tabCount, returnedValue, symbolTable);
 			symbolTable.put(varName, returnType);
 		} else {
 			symbolTable.put(varName, "null");
+			returnType = "";
 		}
 
 		// Remove scope variable before writing to output
 		// line = line.substring(line.indexOf(" ")+1);
 		// line = "\t".repeat(tabCount) + line;
-		output.add(line);
+		String transLine = ("\t".repeat(tabCount)) +returnType + " " + varName + " " + rightSide;
+		output.add(transLine);
 		System.out.println("declaration...DONE!");
 	}
 
@@ -260,7 +264,7 @@ public class Translator {
 		}
 		symbolTable.put(functionName, returnType);
 		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
-		output.add("public static " + returnType + " " + funNameWithParams + "\n{");
+		output.add("public static " + returnType + " " + funNameWithParams + "{");
 		System.out.println("return statement...DONE!");	
 		currentLineCount++;
 		lineCount++;
@@ -484,9 +488,13 @@ public class Translator {
 		cleanOutput(output);
 		try {
 		      FileWriter myWriter = new FileWriter(args[1]);
+		      String heading = args[1];
+		      heading = heading.replaceAll(".java", "");
+		      myWriter.write("public class " + heading + "{" + "\n");
 		      for (String translatedLine : output) {
-		    	  myWriter.write(translatedLine + "\n");
+		    	  myWriter.write("\t" + translatedLine + "\n");
 				}
+		      myWriter.write("}");
 		      myWriter.close();
 		      System.out.println("Successfully wrote to the file.");
 		    } catch (IOException e) {
