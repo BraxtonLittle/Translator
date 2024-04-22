@@ -1,0 +1,4 @@
+fun primary():
+	const name = 10;
+	name = 70;
+	

@@ -112,6 +112,7 @@ public class Translator {
 		String newlyInitializedType = getReturnType(tabCount, returnedValue, symbolTable);
 		String originallyInitializedType = symbolTable.get(varName + variableTabCount)[0];
 		String originalScope = symbolTable.get(varName + variableTabCount)[1];
+		originalScope = originalScope.replaceAll("\t", "");
 		if(originalScope.equals("const")) {
 			throw new ParseException("ERROR: You cannot re-assign the const variable " + varName + " to a new value!", 0);
 		}
@@ -128,7 +129,7 @@ public class Translator {
 
 	public static void translatePrintStmt(String line, List<String> output) {
 		System.out.println("Translating speak statement...");
-		line = line.replace("speak", "System.out.print");
+		line = line.replace("speak", "System.out.println");
 		output.add(line);
 		System.out.println("speak...DONE!");
 	}
@@ -159,6 +160,7 @@ public class Translator {
 		Matcher matcher = pattern.matcher(variableToSearch);
 		if (matcher.find()) {
 			variableToSearch = variableToSearch.substring(0, variableToSearch.indexOf("(")).strip();
+			variableToSearch = variableToSearch + "0";
 			if (symbolTable.containsKey(variableToSearch)) {
 				return symbolTable.get(variableToSearch)[0];
 			} else {
@@ -250,7 +252,7 @@ public class Translator {
 				int readTabCount = countTabs(inputLine);
 				// If tab counts mismatch, we've broken out of scope without finding
 				// a return statement
-				if (readTabCount - 1 != tabCount) {
+				if (readTabCount - 1 < tabCount) {
 					break;
 				}
 				String regex = "\t".repeat(readTabCount) + "return .*;";

@@ -1,0 +1,13 @@
+fun countTo(int val):
+	let i = 0;
+	while(i < val):
+		i = i+1;
+	return i;
+
+fun primary():
+	const check = countTo(7);
+	if(check == 7):
+		speak("values are the same, hooray!");
+	else:
+		speak("cities will burn");
+
