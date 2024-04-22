@@ -1,23 +1,8 @@
-let myVar=8;
-let otherVar = on AND off;
-while(on ):
-	if( on OR off):
-		speak("counting...");
-	else:
-		speak("Not counting...");
-fun add(int x, int y):
-	const temp = "This is my string";
-	return 5;
-speak("Test");
-fun double(boolean x):
-	var x = "Test";
-	return on;
-
-const newVar = on;
-fun compare(x,y):
-	if(x AND y):
-		return on;
-	return off;
+let myVar1 = 8;
+fun forFun(String y):
+	myVar1 = 10;
+	let temp = "Hello";
 	
-compare(on, off);
+fun noFun():
+	myVar1 = 9;
 

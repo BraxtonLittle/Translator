@@ -15,11 +15,10 @@ import java.util.regex.Pattern;
  * General project notes:
  * 
  * 
- * One of our additional features can check if const variables get re-initialized,
- * and if a let/var variable is undefined/used outside of its scope. i.e. it gets defined within
- * a conditional block and is used outside of the block, thus it would be undefined.
+ * TODO: Change symbol table for const re-initialization,
+ * Check for in programs: Wrong types, no variable declared, re-initializing
  * 
- * TODO: need to translate let and var and const keywords into String, Integer and boolean.
+ * 
  * 
  */
 
@@ -61,7 +60,7 @@ public class Translator {
 		String rightSide = line.substring(line.indexOf("="));
 
 		// If re-declaring a variable in the same scope, throw error
-		if (symbolTable.containsKey(varName)) {
+		if (symbolTable.containsKey(varName + tabCount)) {
 			throw new ParseException("ERROR: A variable with that name already exists in this scope", 0);
 		}
 
@@ -71,16 +70,16 @@ public class Translator {
 		if (line.contains("=")) {
 			String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
 			returnType = getReturnType(tabCount, returnedValue, symbolTable);
-			symbolTable.put(varName, returnType);
+			symbolTable.put(varName + tabCount, returnType);
 		} else {
-			symbolTable.put(varName, "null");
+			symbolTable.put(varName + tabCount, "null");
 			returnType = "";
 		}
 
 		// Remove scope variable before writing to output
 		// line = line.substring(line.indexOf(" ")+1);
 		// line = "\t".repeat(tabCount) + line;
-		String transLine = ("\t".repeat(tabCount)) +returnType + " " + varName + " " + rightSide;
+		String transLine = ("\t".repeat(tabCount)) + returnType + " " + varName + " " + rightSide;
 		output.add(transLine);
 		System.out.println("declaration...DONE!");
 	}
@@ -88,29 +87,33 @@ public class Translator {
 	public static void translateInitializeStmt(String line, Integer tabCount, List<String> output,
 			Map<String, String> symbolTable) throws ParseException {
 		System.out.println("Parsing variable initalization...");
-		// System.out.println("Symbol table: " + symbolTable);
 		// Check if initialized variable has been declared
 		String varName = line.substring(0, line.indexOf("=")).strip();
-		// TODO: iteratively check for other variables defined in larger scope by
-		// iterating down to tabCount 0
-		if (!symbolTable.containsKey(varName + tabCount)) {
+		int variableTabCount = tabCount;
+		boolean foundMatchingVariable = false;
+		while(variableTabCount>=0) {
+			if(symbolTable.containsKey(varName + variableTabCount)) {
+				foundMatchingVariable = true;
+				break;
+			}
+			variableTabCount--;
+		}
+		if (!foundMatchingVariable) {
 			throw new ParseException(
 					"ERROR: Variable " + varName + " has not been declared. Use the const|let|var keywords", 0);
 		}
-		// Wait to append tabCount to end of variable name in case we need to print its
-		// name in above case for ParseException
-		varName += tabCount;
+
 		// Check type assignment and make sure we're not reassigning a variable to a
 		// different type, unless we're assigning
 		// a null variable to have an actual value
 		String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
 		String newlyInitializedType = getReturnType(tabCount, returnedValue, symbolTable);
-		String originallyInitializedType = symbolTable.get(varName);
+		String originallyInitializedType = symbolTable.get(varName + variableTabCount);
 		if (originallyInitializedType != "null" && originallyInitializedType != newlyInitializedType) {
 			throw new ParseException("ERROR: You cannot assign " + varName + " to be of type " + newlyInitializedType
-					+ " because it was declared as a " + symbolTable.get(varName), 0);
+					+ " because it was declared as a " + symbolTable.get(varName + variableTabCount), 0);
 		} else {
-			symbolTable.put(varName, newlyInitializedType);
+			symbolTable.put(varName + variableTabCount, newlyInitializedType);
 		}
 		System.out.println("intitalization...DONE!");
 		output.add(line);
@@ -286,8 +289,13 @@ public class Translator {
 			dif--;
 		}
 		System.out.println("function body...DONE!");	
-
-		// TODO: Remove variables from symbol table defined in local function scope
+		
+		
+		for(String varName : symbolTable.keySet()) {
+			if(varName.charAt(varName.length()-1)=='1') {
+				symbolTable.remove(varName);
+			}
+		}
 
 		// Add a closing bracket to signify the end of the function, and add 2 to the
 		// updated line
