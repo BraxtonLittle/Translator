@@ -1,7 +1,8 @@
 public class output{
 	public static void main(String[] args){
-		primary();
+		primary(args);
 	}
+<<<<<<< HEAD
 <<<<<<< HEAD
 	public static void primary(){
 		boolean bval1 = true;
@@ -14,6 +15,9 @@ public class output{
 		System.out.println("bval5 = " + bval5);
 =======
 	public static int primary(String x, int y, boolean z){
+=======
+	public static int primary(String[] args){
+>>>>>>> 4edc0d3 (Added support for command line args)
 		return args[0];
 >>>>>>> 000a9dd (Added command line support)
 	}

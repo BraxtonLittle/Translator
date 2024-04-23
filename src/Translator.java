@@ -246,12 +246,27 @@ public class Translator {
 		if (params.equals(""))
 			return;
 		String[] paramList = params.split(",");
-		for (String param : paramList) {
-			param = param.strip();
-			String[] paramContents = param.split(" ");
-			String[] mappedContents = { paramContents[0], "const" };
-			symbolTable.put(paramContents[1] + 1, mappedContents);
+		for(String param : paramList) {
+			if(param.strip().length()>0) {
+				System.out.println(param);
+				param = param.strip();
+				String[] paramContents = param.split(" ");
+				String[] mappedContents = {paramContents[0], "const"};
+				symbolTable.put(paramContents[1]+1, mappedContents);
+			}
 		}
+	}
+	
+	public static String insertCmdLineArgs(String line) {
+		String firstHalf = line.substring(0, line.indexOf("("));
+		String secondHalf = line.substring(line.indexOf("(")+1);
+		if(secondHalf.charAt(0)==')') {
+			return firstHalf + "(String[] args" + secondHalf;
+		}
+		else {
+			return firstHalf + "(String[] args, " + secondHalf;
+		}
+		
 	}
 
 	/*
@@ -348,7 +363,10 @@ public class Translator {
 		String[] mapContents = { returnType, "func" };
 		symbolTable.put(functionName, mapContents);
 		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
-		for (int i = 0; i < output.size(); i++) {
+		if(functionName.equals("primary0")) {
+			funNameWithParams = insertCmdLineArgs(funNameWithParams);
+		}
+		for(int i = 0; i<output.size(); i++) {
 			String outputLine = output.get(i);
 			if (outputLine.equals(functionName + "()")) {
 				output.set(i, "public static " + returnType + " " + funNameWithParams + "{");
@@ -562,23 +580,22 @@ public class Translator {
 		// correct then worry about actually writing to a file later
 		cleanOutput(output);
 		try {
-			FileWriter myWriter = new FileWriter(args[1]);
-			String heading = args[1];
-			heading = heading.replaceAll(".java", "");
-			myWriter.write("public class " + heading + "{\n");
-			myWriter.write("\tpublic static void main(String[] args)" + "{\n");
-			myWriter.write("\t\tprimary();\n\t}\n");
-			for (String translatedLine : output) {
-				myWriter.write("\t" + translatedLine + "\n");
-			}
-			myWriter.write("}");
-			myWriter.close();
-			System.out.println("Successfully wrote to the file.");
-		} catch (IOException e) {
-			System.out.println("An error occurred.");
-			e.printStackTrace();
-		}
-
+		      FileWriter myWriter = new FileWriter(args[1]);
+		      String heading = args[1];
+		      heading = heading.replaceAll(".java", "");
+		      myWriter.write("public class " + heading + "{\n");
+		      myWriter.write("\tpublic static void main(String[] args)" + "{\n");
+		      myWriter.write("\t\tprimary(args);\n\t}\n");
+		      for (String translatedLine : output) {
+		    	  myWriter.write("\t" + translatedLine + "\n");
+				}
+		      myWriter.write("}");
+		      myWriter.close();
+		      System.out.println("Successfully wrote to the file.");
+		    } catch (IOException e) {
+		      System.out.println("An error occurred.");
+		      e.printStackTrace();
+		    }
 	}
 
 	/*
