@@ -209,6 +209,16 @@ public class Translator {
 		// If no return type found, print error
 		throw new ParseException("ERROR: A return type could not be found for: " + inputLine, 0);
 	}
+	
+	public static void addParamsToTable(String params, Map<String, String[]> symbolTable) {
+		String[] paramList = params.split(",");
+		for(String param : paramList) {
+			param = param.strip();
+			String[] paramContents = param.split(" ");
+			String[] mappedContents = {paramContents[0], "const"};
+			symbolTable.put(paramContents[1]+1, mappedContents);
+		}
+	}
 
 	/*
 	 * This function uses a subScanner to "jump ahead" in the file and determine the
@@ -233,6 +243,8 @@ public class Translator {
 			// instead of checking the subScanner's line against the main scanner
 			throw new ParseException("ERROR: Duplicate function name " + functionName + " detected", 0);
 		}
+		String paramList = line.substring(line.indexOf("(")+1, line.indexOf(")"));
+		addParamsToTable(paramList, symbolTable);
 		System.out.println("function head...DONE!");	
 		functionName += tabCount;
 		System.out.println("Retrieving return statment...");	

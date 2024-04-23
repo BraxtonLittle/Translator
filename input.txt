@@ -1,2 +1,2 @@
-fun primary():
-	let x = 9;
+fun primary(String x, int y, boolean z):
+	return x;
