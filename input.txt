@@ -1,2 +1,2 @@
 fun primary(String x, int y, boolean z):
-	return x;
+	return $arg0;

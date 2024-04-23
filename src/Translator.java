@@ -32,14 +32,45 @@ public class Translator {
 		List<String> output = new ArrayList<String>();
 		if (sc != null) {
 			Map<String, String[]> symbolTable = new HashMap<>();
+			processCmdLineArgs(args, symbolTable);
 			try {
-				translate(0, sc, symbolTable, output, 1, args);
+				translate(0, sc, symbolTable, output, 1,args);
+				replaceCmdLineArgs(output);
 				// Once we've read through the entire file, write output
 				writeOutput(output, args);
 			} catch (ParseException e) {
 				System.out.println(e.getMessage());
 			}
 			sc.close();
+		}
+	}
+	
+	public static void replaceCmdLineArgs(List<String> output) {
+		for(int i = 0; i<output.size(); i++) {
+			String line = output.get(i);
+			if(line.contains("$arg")) {
+				int argIndex = Integer.parseInt(line.substring(line.indexOf("$arg")+4).replace(";", "").strip());
+				String formattedLine = line.replace("$arg" + argIndex, "args[" + argIndex + "]");
+				output.set(i, formattedLine);
+			}
+		}
+	}
+	
+	public static void processCmdLineArgs(String[] args, Map<String, String[]> table) {
+		if(args.length>2) {
+			Pattern pattern;
+			Matcher matcher;
+			for(int i = 2; i<args.length; i++) {
+				String argType = "String";
+				pattern = Pattern.compile("-?[0-9]+");
+				matcher = pattern.matcher(args[i]);
+				if (matcher.find()) {
+					argType = "int";
+				}
+				String[] mappedContents = {argType, "const"};
+				String key = "$arg" + (i-2);
+				table.put(key, mappedContents);
+			}
 		}
 	}
 
@@ -441,13 +472,12 @@ public class Translator {
 	 * methods and return here to continue parsing through the rest of the input
 	 * file afterwards.
 	 */
-	public static int translate(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable,
-			List<String> output, int lineCount, String[] args) throws ParseException {
-		String x = "";
+	public static int translate(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable, List<String> output,
+			int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
 		while (scanner.hasNextLine()) {
 			String inputLine = scanner.nextLine();
-
+			
 			int readTabCount = countTabs(inputLine);
 			if (tabCount != readTabCount) {
 				break;
