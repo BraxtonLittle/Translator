@@ -33,9 +33,9 @@ public class Translator {
 		if (sc != null) {
 			Map<String, String[]> symbolTable = new HashMap<>();
 			try {
-				translate(0, sc, symbolTable, output, 1,args);
+				translate(0, sc, symbolTable, output, 1, args);
 				// Once we've read through the entire file, write output
-				writeOutput(output,args);
+				writeOutput(output, args);
 			} catch (ParseException e) {
 				System.out.println(e.getMessage());
 			}
@@ -70,10 +70,10 @@ public class Translator {
 		if (line.contains("=")) {
 			String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
 			returnType = getReturnType(tabCount, returnedValue, symbolTable);
-			String[] mapContents = {returnType, scope};
+			String[] mapContents = { returnType, scope };
 			symbolTable.put(varName + tabCount, mapContents);
 		} else {
-			String[] mapContents = {"null", scope};
+			String[] mapContents = { "null", scope };
 			symbolTable.put(varName + tabCount, mapContents);
 			returnType = "";
 		}
@@ -93,8 +93,8 @@ public class Translator {
 		String varName = line.substring(0, line.indexOf("=")).strip();
 		int variableTabCount = tabCount;
 		boolean foundMatchingVariable = false;
-		while(variableTabCount>=0) {
-			if(symbolTable.containsKey(varName + variableTabCount)) {
+		while (variableTabCount >= 0) {
+			if (symbolTable.containsKey(varName + variableTabCount)) {
 				foundMatchingVariable = true;
 				break;
 			}
@@ -113,14 +113,15 @@ public class Translator {
 		String originallyInitializedType = symbolTable.get(varName + variableTabCount)[0];
 		String originalScope = symbolTable.get(varName + variableTabCount)[1];
 		originalScope = originalScope.replaceAll("\t", "");
-		if(originalScope.equals("const")) {
-			throw new ParseException("ERROR: You cannot re-assign the const variable " + varName + " to a new value!", 0);
+		if (originalScope.equals("const")) {
+			throw new ParseException("ERROR: You cannot re-assign the const variable " + varName + " to a new value!",
+					0);
 		}
 		if (originallyInitializedType != "null" && originallyInitializedType != newlyInitializedType) {
 			throw new ParseException("ERROR: You cannot assign " + varName + " to be of type " + newlyInitializedType
 					+ " because it was declared as a " + symbolTable.get(varName + variableTabCount), 0);
 		} else {
-			String[] mapContents = {newlyInitializedType, originalScope};
+			String[] mapContents = { newlyInitializedType, originalScope };
 			symbolTable.put(varName + variableTabCount, mapContents);
 		}
 		System.out.println("intitalization...DONE!");
@@ -171,20 +172,11 @@ public class Translator {
 			}
 		}
 
-		// Check if the value is an integer. "-?" searches for an optional dash to
-		// handle
-		// negative integers, and "\d+" searches for one or more digits
-		pattern = Pattern.compile("-?[0-9]+");
-		matcher = pattern.matcher(variableToSearch);
-		if (matcher.find()) {
-			return "int";
-		}
-
 		if (inputLine.contains("on") || inputLine.contains("off")) {
 			return "boolean";
 		}
 
-		String[] comparisonOps = { ">", "<", ">=", "<=", "==" };
+		String[] comparisonOps = { ">", "<", ">=", "<=", "==", "OR", "NOT", "AND" };
 		String[] arithmeticOps = { "+", "-", "/", "%" };
 		for (String comparisonOp : comparisonOps) {
 			if (inputLine.contains(comparisonOp)) {
@@ -198,25 +190,36 @@ public class Translator {
 			}
 		}
 
+		// Check if the value is an integer. "-?" searches for an optional dash to
+		// handle
+		// negative integers, and "\d+" searches for one or more digits
+		pattern = Pattern.compile("-?[0-9]+");
+		matcher = pattern.matcher(variableToSearch);
+		if (matcher.find()) {
+			return "int";
+		}
+
 		if (inputLine.contains("\"")) {
 			return "String";
 		}
-		
-		if (symbolTable.containsKey(variableToSearch+tabCount)) {
-			return symbolTable.get(variableToSearch+tabCount)[0];
+
+		if (symbolTable.containsKey(variableToSearch + tabCount)) {
+			return symbolTable.get(variableToSearch + tabCount)[0];
 		}
 
 		// If no return type found, print error
 		throw new ParseException("ERROR: A return type could not be found for: " + inputLine, 0);
 	}
-	
+
 	public static void addParamsToTable(String params, Map<String, String[]> symbolTable) {
+		if (params.equals(""))
+			return;
 		String[] paramList = params.split(",");
-		for(String param : paramList) {
+		for (String param : paramList) {
 			param = param.strip();
 			String[] paramContents = param.split(" ");
-			String[] mappedContents = {paramContents[0], "const"};
-			symbolTable.put(paramContents[1]+1, mappedContents);
+			String[] mappedContents = { paramContents[0], "const" };
+			symbolTable.put(paramContents[1] + 1, mappedContents);
 		}
 	}
 
@@ -227,10 +230,10 @@ public class Translator {
 	 * translate() function with an increased tabCount value to indicate scope.
 	 * 
 	 */
-	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable, String line,
-			List<String> output, int lineCount, String[] args) throws ParseException {
+	public static int translateFunction(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable,
+			String line, List<String> output, int lineCount, String[] args) throws ParseException {
 		int currentLineCount = lineCount;
-		System.out.println("Parsing function head...");	
+		System.out.println("Parsing function head...");
 		// Shows an error if a function exists with same name and return type, mostly
 		// because
 		// this isn't valid in Java but also because it'll cause a bug in our
@@ -243,11 +246,11 @@ public class Translator {
 			// instead of checking the subScanner's line against the main scanner
 			throw new ParseException("ERROR: Duplicate function name " + functionName + " detected", 0);
 		}
-		String paramList = line.substring(line.indexOf("(")+1, line.indexOf(")"));
+		String paramList = line.substring(line.indexOf("(") + 1, line.indexOf(")"));
 		addParamsToTable(paramList, symbolTable);
-		System.out.println("function head...DONE!");	
+		System.out.println("function head...DONE!");
 		functionName += tabCount;
-		System.out.println("Retrieving return statment...");	
+		System.out.println("Retrieving return statment...");
 		// Use the subScanner to retrieve the return statement line
 		String foundLine = "";
 		Matcher matcher;
@@ -282,15 +285,16 @@ public class Translator {
 		lineCount++;
 		Scanner sub;
 		System.out.println("Translating function body....");
-		// Add dummy function header to output to be translated after getting return type
-		output.add(functionName+"()");
+		// Add dummy function header to output to be translated after getting return
+		// type
+		output.add(functionName + "()");
 		try {
 			File input = new File(args[0]);
 			sub = new Scanner(input);
 			for (int i = 1; i < currentLineCount; i++) {
 				sub.nextLine();
 			}
-			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount,args);
+			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount, args);
 		} catch (Exception e) {
 			throw new ParseException(e.getMessage(), 0);
 		}
@@ -305,30 +309,28 @@ public class Translator {
 		String returnType;
 		if (foundLine.length() > 0) {
 			foundLine = foundLine.strip().substring(foundLine.indexOf(" ")).replaceAll(";", "");
-			returnType = getReturnType(tabCount+1, foundLine, symbolTable);
+			returnType = getReturnType(tabCount + 1, foundLine, symbolTable);
 		} else {
 			// No return line, function type is void
 			returnType = "void";
 		}
-		String[] mapContents = {returnType, "func"};
+		String[] mapContents = { returnType, "func" };
 		symbolTable.put(functionName, mapContents);
 		String funNameWithParams = line.substring(line.indexOf(" ") + 1, line.length() - 1);
-		for(int i = 0; i<output.size(); i++) {
+		for (int i = 0; i < output.size(); i++) {
 			String outputLine = output.get(i);
-			if(outputLine.equals(functionName + "()")) {
+			if (outputLine.equals(functionName + "()")) {
 				output.set(i, "public static " + returnType + " " + funNameWithParams + "{");
 			}
 		}
-		System.out.println("return statement...DONE!");	
-		
+		System.out.println("return statement...DONE!");
+
 		Iterator<Map.Entry<String, String[]>> itr = symbolTable.entrySet().iterator();
-		while(itr.hasNext())
-		{
-		   Map.Entry<String, String[]> entry = itr.next();
-		   if(entry.getKey().charAt(entry.getKey().length()-1)=='1')
-		   {
-		      itr.remove();
-		   }
+		while (itr.hasNext()) {
+			Map.Entry<String, String[]> entry = itr.next();
+			if (entry.getKey().charAt(entry.getKey().length() - 1) == '1') {
+				itr.remove();
+			}
 		}
 
 		// Add a closing bracket to signify the end of the function, and add 2 to the
@@ -342,7 +344,8 @@ public class Translator {
 	 * Translates if statements into proper java grammar.
 	 */
 	public static int translateConditionalStmt(Integer tabCount, Scanner scanner, String line,
-			Map<String, String[]> symbolTable, List<String> output, int lineCount, String[] args) throws ParseException {
+			Map<String, String[]> symbolTable, List<String> output, int lineCount, String[] args)
+			throws ParseException {
 		int currentLineCount = lineCount;
 		// Translate line parameter first and add it to output, then handle
 		// nested function body by calling translate with additional tabCount
@@ -403,7 +406,7 @@ public class Translator {
 			for (int i = 1; i < currentLineCount; i++) {
 				sub.nextLine();
 			}
-			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount,args);
+			currentLineCount = translate(tabCount + 1, sub, symbolTable, output, currentLineCount, args);
 		} catch (Exception e) {
 			System.out.println("Failed to read file: " + e);
 		}
@@ -438,8 +441,8 @@ public class Translator {
 	 * methods and return here to continue parsing through the rest of the input
 	 * file afterwards.
 	 */
-	public static int translate(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable, List<String> output,
-			int lineCount, String[] args) throws ParseException {
+	public static int translate(Integer tabCount, Scanner scanner, Map<String, String[]> symbolTable,
+			List<String> output, int lineCount, String[] args) throws ParseException {
 		String x = "";
 		int currentLineCount = lineCount;
 		while (scanner.hasNextLine()) {
@@ -456,21 +459,21 @@ public class Translator {
 			Matcher matcher = pattern.matcher(inputLine);
 			if (matcher.find()) {
 				currentLineCount = translateFunction(tabCount, scanner, symbolTable, inputLine, output,
-						currentLineCount,args);
+						currentLineCount, args);
 			} else {
 				// Conditional statement
 				pattern = Pattern.compile("(if|elif|else)(.*):");
 				matcher = pattern.matcher(inputLine);
 				if (matcher.find()) {
 					currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output,
-							currentLineCount,args);
+							currentLineCount, args);
 				} else {
 					// Loops fn
 					pattern = Pattern.compile("while(.*):");
 					matcher = pattern.matcher(inputLine);
 					if (matcher.find()) {
 						currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output,
-								currentLineCount,args);
+								currentLineCount, args);
 					} else {
 						// Print statement
 						pattern = Pattern.compile("speak(.*);");
@@ -524,35 +527,32 @@ public class Translator {
 	 * Writes the contents of the output ArrayList, which contains translated lines
 	 * of Java code, to a Java file that can then be compiled and ran.
 	 */
-	public static void writeOutput(List<String> output,String[] args) {
+	public static void writeOutput(List<String> output, String[] args) {
 		// For now, we'll just print the output to check if its
 		// correct then worry about actually writing to a file later
 		cleanOutput(output);
 		try {
-		      FileWriter myWriter = new FileWriter(args[1]);
-		      String heading = args[1];
-		      heading = heading.replaceAll(".java", "");
-		      myWriter.write("public class " + heading + "{\n");
-		      myWriter.write("\tpublic static void main(String[] args)" + "{\n");
-		      myWriter.write("\t\tprimary();\n\t}\n");
-		      for (String translatedLine : output) {
-		    	  myWriter.write("\t" + translatedLine + "\n");
-				}
-		      myWriter.write("}");
-		      myWriter.close();
-		      System.out.println("Successfully wrote to the file.");
-		    } catch (IOException e) {
-		      System.out.println("An error occurred.");
-		      e.printStackTrace();
-		    }
-	
-		
-			
+			FileWriter myWriter = new FileWriter(args[1]);
+			String heading = args[1];
+			heading = heading.replaceAll(".java", "");
+			myWriter.write("public class " + heading + "{\n");
+			myWriter.write("\tpublic static void main(String[] args)" + "{\n");
+			myWriter.write("\t\tprimary();\n\t}\n");
+			for (String translatedLine : output) {
+				myWriter.write("\t" + translatedLine + "\n");
+			}
+			myWriter.write("}");
+			myWriter.close();
+			System.out.println("Successfully wrote to the file.");
+		} catch (IOException e) {
+			System.out.println("An error occurred.");
+			e.printStackTrace();
+		}
+
 	}
 
 	/*
-	 * Takes our output and changes key words to match
-	 * our language grammar.
+	 * Takes our output and changes key words to match our language grammar.
 	 */
 	public static void cleanOutput(List<String> output) {
 		System.out.println("Changing keywords...");

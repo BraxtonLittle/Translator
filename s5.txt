@@ -1,10 +1,10 @@
 fun primary():
 	var bval1 = on;
 	var bval2 = off;
-	bval3 = bval1 OR bval2;
+	var bval3 = bval1 OR bval2;
 	speak("bval3 = " + bval3);
-	bval4 = bval3 AND bval2;
+	var bval4 = bval3 AND bval2;
 	speak("bval4 = " + bval4);
-	bval5 = NOT bval4; 
+	var bval5 = NOT bval4; 
 	speak("bval5 = " + bval5);
 		
