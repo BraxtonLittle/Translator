@@ -49,7 +49,8 @@ public class Translator {
 		for(int i = 0; i<output.size(); i++) {
 			String line = output.get(i);
 			if(line.contains("$arg")) {
-				int argIndex = Integer.parseInt(line.substring(line.indexOf("$arg")+4).replace(";", "").strip());
+				String modifiedLine = line.substring(line.indexOf("$arg")+4, line.indexOf("$arg")+5);
+				int argIndex = Integer.parseInt(modifiedLine.replace(";", "").strip());
 				String formattedLine = line.replace("$arg" + argIndex, "args[" + argIndex + "]");
 				output.set(i, formattedLine);
 			}

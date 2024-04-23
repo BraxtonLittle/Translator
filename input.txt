@@ -1,2 +1,2 @@
 fun primary():
-	return $arg0;
+	speak($arg9);
