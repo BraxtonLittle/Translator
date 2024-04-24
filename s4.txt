@@ -5,7 +5,7 @@ fun countTo(int val):
 	return i;
 
 fun primary():
-	const check = countTo(7);
+	const check = countTo(8);
 	if(check == 7):
 		speak("values are the same, hooray!");
 	else:

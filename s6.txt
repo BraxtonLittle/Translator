@@ -1,0 +1,5 @@
+fun primary():
+	let val = $arg2;
+	let other = $arg3;
+	let sum = val + other;
+	speak(sum);

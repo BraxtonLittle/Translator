@@ -3,6 +3,8 @@ public class output{
 		primary(args);
 	}
 	public static void primary(String[] args){
-		System.out.println(args[9]);
+		String val = "Hello";
+		String other = "Vro";
+		System.out.println(val+other);
 	}
 }

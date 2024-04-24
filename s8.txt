@@ -1,0 +1,4 @@
+fun primary():
+	let val = $arg2;
+	let other = $arg3;
+	speak(val+other);

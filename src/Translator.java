@@ -13,6 +13,7 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /*
  * General project notes:
  * 
@@ -35,7 +36,7 @@ public class Translator {
 			processCmdLineArgs(args, symbolTable);
 			try {
 				translate(0, sc, symbolTable, output, 1,args);
-				replaceCmdLineArgs(output);
+				replaceCmdLineArgs(output,args);
 				// Once we've read through the entire file, write output
 				writeOutput(output, args);
 			} catch (ParseException e) {
@@ -45,13 +46,14 @@ public class Translator {
 		}
 	}
 	
-	public static void replaceCmdLineArgs(List<String> output) {
+	public static void replaceCmdLineArgs(List<String> output,String[] args) {
 		for(int i = 0; i<output.size(); i++) {
 			String line = output.get(i);
 			if(line.contains("$arg")) {
 				String modifiedLine = line.substring(line.indexOf("$arg")+4, line.indexOf("$arg")+5);
 				int argIndex = Integer.parseInt(modifiedLine.replace(";", "").strip());
-				String formattedLine = line.replace("$arg" + argIndex, "args[" + argIndex + "]");
+				String tmp =  '"' + args[argIndex] + '"';
+				String formattedLine = line.replace("$arg" + argIndex, tmp);
 				output.set(i, formattedLine);
 			}
 		}
@@ -67,6 +69,8 @@ public class Translator {
 				matcher = pattern.matcher(args[i]);
 				if (matcher.find()) {
 					argType = "int";
+					String key = "$arg" + (i-2);
+					
 				}
 				String[] mappedContents = {argType, "const"};
 				String key = "$arg" + (i-2);
@@ -76,7 +80,7 @@ public class Translator {
 	}
 
 	public static void translateDeclarationStmt(String line, Integer tabCount, List<String> output,
-			Map<String, String[]> symbolTable) throws ParseException {
+			Map<String, String[]> symbolTable,String[] args) throws ParseException {
 		System.out.println("Translating declaration statement...");
 		String varName = line.substring(line.indexOf(" ")).replaceAll(";", "");
 		String scope = line.substring(0, line.indexOf(" "));
@@ -101,7 +105,7 @@ public class Translator {
 		String returnType;
 		if (line.contains("=")) {
 			String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
-			returnType = getReturnType(tabCount, returnedValue, symbolTable);
+			returnType = getReturnType(tabCount, returnedValue, symbolTable,args);
 			String[] mapContents = { returnType, scope };
 			symbolTable.put(varName + tabCount, mapContents);
 		} else {
@@ -113,13 +117,18 @@ public class Translator {
 		// Remove scope variable before writing to output
 		// line = line.substring(line.indexOf(" ")+1);
 		// line = "\t".repeat(tabCount) + line;
+		if(returnType.equals("int") && rightSide.contains("$arg")) {
+			String newRight = rightSide.substring(1,rightSide.length()-1);
+			newRight = "= Integer.parseInt(" + newRight + ");";
+			rightSide = newRight;
+		}
 		String transLine = ("\t".repeat(tabCount)) + returnType + " " + varName + " " + rightSide;
 		output.add(transLine);
 		System.out.println("declaration...DONE!");
 	}
 
 	public static void translateInitializeStmt(String line, Integer tabCount, List<String> output,
-			Map<String, String[]> symbolTable) throws ParseException {
+			Map<String, String[]> symbolTable, String[] args) throws ParseException {
 		System.out.println("Parsing variable initalization...");
 		// Check if initialized variable has been declared
 		String varName = line.substring(0, line.indexOf("=")).strip();
@@ -141,7 +150,7 @@ public class Translator {
 		// different type, unless we're assigning
 		// a null variable to have an actual value
 		String returnedValue = line.substring(line.indexOf("=") + 1).replaceAll(";", "");
-		String newlyInitializedType = getReturnType(tabCount, returnedValue, symbolTable);
+		String newlyInitializedType = getReturnType(tabCount, returnedValue, symbolTable,args);
 		String originallyInitializedType = symbolTable.get(varName + variableTabCount)[0];
 		String originalScope = symbolTable.get(varName + variableTabCount)[1];
 		originalScope = originalScope.replaceAll("\t", "");
@@ -184,7 +193,7 @@ public class Translator {
 	 * returning a variable of sorts so use the return type of that variable stored
 	 * in the lookup table.
 	 */
-	public static String getReturnType(Integer tabCount, String inputLine, Map<String, String[]> symbolTable)
+	public static String getReturnType(Integer tabCount, String inputLine, Map<String, String[]> symbolTable, String[] args)
 			throws ParseException {
 		String variableToSearch = inputLine.strip();
 		// If we're returning a function, we want to lookup only the name in our
@@ -202,6 +211,20 @@ public class Translator {
 				throw new ParseException(
 						"ERROR: The function " + variableToSearch + " has not been defined before being used", 0);
 			}
+		}
+		if(variableToSearch.contains("$arg")) {
+			int i = variableToSearch.length()-1;
+			int j = Integer.parseInt(variableToSearch.substring(i));
+			pattern = Pattern.compile("-?\\d+(\\.\\d+)?");
+			matcher = pattern.matcher(args[j]);
+			if(matcher.find()) {
+				return "int";
+			}
+			else {
+				return "String";
+			}
+			
+			
 		}
 
 		if (inputLine.contains("on") || inputLine.contains("off")) {
@@ -297,7 +320,7 @@ public class Translator {
 		addParamsToTable(paramList, symbolTable);
 		System.out.println("function head...DONE!");
 		functionName += tabCount;
-		System.out.println("Retrieving return statment...");
+		
 		// Use the subScanner to retrieve the return statement line
 		String foundLine = "";
 		Matcher matcher;
@@ -353,10 +376,11 @@ public class Translator {
 		System.out.println("function body...DONE!");
 		// Interpret the return type from the return statement line, or void
 		// if no return statement was found in this scope
+		System.out.println("Retrieving return statment...");
 		String returnType;
 		if (foundLine.length() > 0) {
 			foundLine = foundLine.strip().substring(foundLine.indexOf(" ")).replaceAll(";", "");
-			returnType = getReturnType(tabCount + 1, foundLine, symbolTable);
+			returnType = getReturnType(tabCount + 1, foundLine, symbolTable,args);
 		} else {
 			// No return line, function type is void
 			returnType = "void";
@@ -517,11 +541,11 @@ public class Translator {
 					currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output,
 							currentLineCount, args);
 				} else {
-					// Loops fn
+					// Loops 
 					pattern = Pattern.compile("while(.*):");
 					matcher = pattern.matcher(inputLine);
 					if (matcher.find()) {
-						currentLineCount = translateConditionalStmt(tabCount, scanner, inputLine, symbolTable, output,
+						currentLineCount = translateLoops(tabCount, scanner, inputLine, symbolTable, output,
 								currentLineCount, args);
 					} else {
 						// Print statement
@@ -535,14 +559,14 @@ public class Translator {
 							pattern = Pattern.compile("(let|const|var) .*;");
 							matcher = pattern.matcher(inputLine);
 							if (matcher.find()) {
-								translateDeclarationStmt(inputLine, tabCount, output, symbolTable);
+								translateDeclarationStmt(inputLine, tabCount, output, symbolTable,args);
 								currentLineCount += 1;
 							} else {
 								// Variable initialization
 								pattern = Pattern.compile(".*=.*;");
 								matcher = pattern.matcher(inputLine);
 								if (matcher.find()) {
-									translateInitializeStmt(inputLine, tabCount, output, symbolTable);
+									translateInitializeStmt(inputLine, tabCount, output, symbolTable,args);
 									currentLineCount += 1;
 								} else {
 									// Return statement

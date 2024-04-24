@@ -1,0 +1,4 @@
+fun primary():
+	var local = "I love to code";
+	local = 90;
+	
