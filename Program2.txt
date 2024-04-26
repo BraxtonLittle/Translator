@@ -1,0 +1,27 @@
+fun printHelper(int i):
+	let x = 0;
+	while(x<i):
+		speak("*");
+		x = x+1;
+	return 0;
+
+fun getSum(int a, int b, int m):
+	var total = 0;
+	let i = 0;
+	while(i<m):
+		if((i%a==0) OR (i%b==0)):
+			total = total + i;
+		i = i+1;
+	return total;
+
+fun primary():
+	const a = $arg2;
+	const b = $arg3;
+	const m = $arg4;
+	let i = a;
+	while(i<=b):
+		var x = printHelper(i);
+		speak("");
+		i = i +1;
+	var sum = getSum(a,b,m);
+	speak(sum);
